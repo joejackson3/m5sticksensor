@@ -1,0 +1,85 @@
+from m5stack import *
+from m5ui import *
+from uiflow import *
+import time
+import hat
+
+
+setScreenColor(0x111111)
+
+hat_env3_0 = hat.get(hat.ENV3)
+
+n = None
+bright = None
+
+
+
+label0 = M5TextBox(125, 13, "label0", lcd.FONT_DejaVu40, 0xffffff, rotate=90)
+label1 = M5TextBox(84, 13, "label1", lcd.FONT_DejaVu40, 0xa9a1ff, rotate=90)
+label2 = M5TextBox(41, 13, "label2", lcd.FONT_DejaVu40, 0xe73c0e, rotate=90)
+bargraph1 = M5BarGraph(0, 228, 80, 30, 0, 100, M5BarGraph.HORIZON, False, 0x65bb4d, 0x8f9099)
+rectangle0 = M5Rect(125, 106, 10, 25, 0xf7ee0c, 0x000000)
+label3 = M5TextBox(84, 225, "label3", lcd.FONT_Default, 0xFFFFFF, rotate=0)
+label4 = M5TextBox(108, 188, "hPa", lcd.FONT_DejaVu18, 0xFFFFFF, rotate=90)
+label5 = M5TextBox(69, 188, "°C", lcd.FONT_UNICODE, 0xFFFFFF, rotate=90)
+label6 = M5TextBox(24, 188, "%", lcd.FONT_DejaVu18, 0xFFFFFF, rotate=90)
+
+
+
+def buttonA_wasPressed():
+  global n, bright
+  n=(n+1)%2
+  if n == 1:
+    rectangle0.show()
+    label0.hide()
+    label4.hide()
+    label5.hide()
+    label6.hide()
+  if n == 0:
+    rectangle0.hide()
+  pass
+btnA.wasPressed(buttonA_wasPressed)
+
+def buttonB_pressFor():
+  global n, bright
+  axp.powerOff()
+  pass
+btnB.pressFor(0.8, buttonB_pressFor)
+
+def buttonB_wasPressed():
+  global n, bright
+  if n == 1:
+    bright=(bright+1)%4
+    list=[20,40,60,100]
+    axp.setLcdBrightness(list[bright])
+    label4.hide()
+    label5.hide()
+    label6.hide()
+  pass
+btnB.wasPressed(buttonB_wasPressed)
+
+
+n = 0
+bargraph1.show()
+bright = 0
+axp.setLcdBrightness(50)
+speaker.tone(513, 200)
+while True:
+  if n == 0:
+    rectangle0.hide()
+    label0.show()
+    label4.show()
+    label5.show()
+    label6.show()
+    label0.setText("{:>7.2f}".format(hat_env3_0.pressure/100))
+    label1.setText("{:>7.1f}".format(hat_env3_0.temperature) )
+    label2.setText("{:>7.1f}".format(hat_env3_0.humidity))
+    volt=axp.getBatVoltage()
+    #volt=4.4
+    label3.setText("{:.2f}".format(volt)+" V")
+    fraction=0 if volt<3.2 else ((volt-3.2)*100)
+    bargraph1.addSample(fraction)
+    bargraph1.setFgColor(0xff0000 if volt<3.4 else (0xffa500 if volt<3.8 else 0x00ff00))
+
+  wait(2)
+  wait_ms(2)
