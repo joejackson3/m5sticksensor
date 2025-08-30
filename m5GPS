@@ -1,0 +1,65 @@
+from m5stack import *
+from m5ui import *
+from uiflow import *
+import unit
+import hat
+
+
+setScreenColor(0x111111)
+gps_0 = unit.get(unit.GPS, unit.PORTA)
+
+hat_env3_0 = hat.get(hat.ENV3)
+
+time = None
+
+label0 = M5TextBox(8, 6, "label0", lcd.FONT_DejaVu24, 0xFFFFFF, rotate=0)
+label1 = M5TextBox(8, 40, "label1", lcd.FONT_DejaVu18, 0xFFFFFF, rotate=0)
+label2 = M5TextBox(8, 64, "label2", lcd.FONT_DejaVu18, 0xFFFFFF, rotate=0)
+label3 = M5TextBox(8, 91, "label3", lcd.FONT_DejaVu18, 0xFFFFFF, rotate=0)
+label5 = M5TextBox(8, 123, "label5", lcd.FONT_DejaVu24, 0xFFFFFF, rotate=0)
+label6 = M5TextBox(84, 225, "label6", lcd.FONT_Default, 0xFFFFFF, rotate=0)
+label7 = M5TextBox(8, 148, "label7", lcd.FONT_DejaVu24, 0xFFFFFF, rotate=0)
+bargraph0 = M5BarGraph(0, 228, 80, 30, 0, 100, M5BarGraph.HORIZON, False, 0x02fb2e, 0xe72222)
+
+
+
+def buttonA_pressFor():
+  global time
+  M5pwr.off()
+  pass
+btnA.pressFor(0.8, buttonA_pressFor)
+
+@timerSch.event('t1')
+def tt1():
+  global time
+  volt=M5pwr.get_batt_volt()
+  label6.setText("{:.2f}".format(volt)+" V")
+  # label4.setText("{:>7.2f}".format(hat_env3_0.pressure/100))
+  label5.setText("{:>5.1f}".format(hat_env3_0.temperature))
+  label7.setText("{:>7.2f}".format(hat_env3_0.pressure/100))
+  fraction=0 if volt<3.2 else ((volt-3.2)*100)
+  bargraph0.addSample(fraction)
+  bargraph0.setFgColor(0xff0000 if volt<3.4 else (0xffa500 if volt<3.8 else 0x00ff00))
+  pass
+
+@timerSch.event('t2')
+def tt2():
+  global time
+  if gps_0.gps_time!=time:
+    time=gps_0.gps_time
+    a=gps_0.latitude_decimal
+    b=gps_0.longitude_decimal
+
+    label0.setText(time)
+    label1.setText("{:.5f}".format(a)+gps_0.latitude[-1])
+    label2.setText("{:.5f}".format(b)+gps_0.longitude[-1])
+    label3.setText('Qual'+str(gps_0.pos_quality)+' Sat'+str(gps_0.satellite_num))
+
+  pass
+
+
+timerSch.run('t1', 1000, 0x00)
+timerSch.run('t2', 1000, 0x00)
+time = gps_0.gps_time
+gps_0.uart_port_id(1)
+gps_0.set_time_zone(1)
